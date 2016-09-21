@@ -4,7 +4,7 @@ from prof as P, dept as D
 where p.dname = D.dname 
 	and numphds<50;
 
--- Print the names of the students with the lowest GPA.
+-- 2. Print the names of the students with the lowest GPA.
 select sname
-from student as s
+from student
 where gpa = (select min(gpa) from student);
