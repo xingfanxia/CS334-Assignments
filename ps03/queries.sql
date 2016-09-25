@@ -50,9 +50,7 @@ where S.sid = M.sid
 	(select E.sid
 	from course C, enroll E
 	where E.cno = C.cno 
-		and C.cname like 'College Geometry%'
-	group by E.sid
-	having count(*)=1);
+		and C.cname like 'College Geometry%');
 
 -- 8.For those departments that have no major taking a College Geometry course print the department 
 -- name and the number of PhD students in the department.
