@@ -59,7 +59,7 @@ where S.sid = M.sid
 select D.dname, D.numphds
 from dept D
 where D.dname not in 
-	(select distinct M.dname
+	(select M.dname
 	from course C, enroll E, major M
 	where E.cno = C.cno 
 		and C.dname = E.dname
