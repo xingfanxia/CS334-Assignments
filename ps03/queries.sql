@@ -76,7 +76,7 @@ where S.sid = E1.sid and S.sid = E2.sid
 -- 10. Print the age difference between the oldest and the youngest Computer Sciences major.
 select max(age) - min(age) as age_diff
 from major M, student S
-where S.sid = M.sid;
+where S.sid = M.sid and M.dname = 'Computer Sciences';
 
 -- 11. For each department that has one or more majors with a GPA under 1.0, 
 -- print the name of the department and the average GPA of its majors.
