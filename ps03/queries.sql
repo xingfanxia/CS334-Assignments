@@ -81,7 +81,7 @@ where S.sid = M.sid;
 -- 11. For each department that has one or more majors with a GPA under 1.0, 
 -- print the name of the department and the average GPA of its majors.
 select M.dname, avg(gpa)
-from (select distinct M.dname
+from (select M.dname
 	from major M, student S
 	where M.sid = S.sid
 	and S.gpa < 1.0) as low_gpa, major M, student S
