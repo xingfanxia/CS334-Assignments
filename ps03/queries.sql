@@ -20,7 +20,7 @@ group by E.cno, E.sectno;
 select C.cname, E.sectno
 from enroll E, course C
 where E.cno = C.cno and E.dname = C.dname
-group by C.cname, E.sectno
+group by C.cname, E.sectno, C.cno
 having count(*)>6;
 
 -- 5. Print the name(s) and sid(s) of the student(s) enrolled in the most sections.
@@ -38,9 +38,7 @@ where count_sid.sid = S.sid
 -- 6. Print the names of departments that have one or more majors who are under 18 years old.
 select M.dname
 from student S, major M
-where S.age < 18 and S.sid = M.sid
-group by M.dname
-having count(*)>=1;
+where S.age < 18 and S.sid = M.sid;
 	
 -- 7. Print the names and majors of students who are taking one of the College Geometry courses.
 select S.sname, M.dname
