@@ -28,10 +28,9 @@ with count_sid(sid, value) as
 	(select sid, count(*)
 	from enroll E
 	group by E.sid)
-select distinct S.sname, S.sid
-from enroll E, Student S, count_sid
+select S.sname, S.sid
+from Student S, count_sid
 where count_sid.sid = S.sid 
-	and S.sid = E.sid 
 	and count_sid.value = 
 	(select max(value) 
 		from count_sid);
