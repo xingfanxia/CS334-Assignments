@@ -43,3 +43,18 @@ from max_sales as M
 	right outer join Promotions as P
 		using(promo)
 order by P.promo asc;
+
+
+-- Problem 3
+-- Write a query that produces a list of baby names, and the maximum
+-- number of overlapping sessions for the babysitter during that session.
+
+-- create view baby_overlap_sessions as
+-- 	select baby
+-- 	from baby
+
+select *
+from Sessions b1, Sessions b2
+where b1.baby = b2.baby and b1.sister = b2.sister
+	and b1.start_time <= b2.start_time
+	and b1.end_time >= b2.end_time

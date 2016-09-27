@@ -29,3 +29,12 @@ INSERT INTO Sales (salesperson,saledate,amount) VALUES ('Sasha','04/14/2016','76
 INSERT INTO Sales (salesperson,saledate,amount) VALUES ('Sasha','04/20/2016','96050'),('Lael','12/20/2017','30256'),('Ocean','05/01/2019','2896'),('Bevis','11/27/2016','19519'),('Carter','12/09/2016','18602'),('Walter','11/21/2018','8568'),('Amela','04/13/2016','8781'),('Nadine','01/08/2019','47519'),('Paki','09/25/2016','2409'),('Hadley','04/27/2017','9604');
 INSERT INTO Promotions (promo,startdate,enddate) VALUES ('NoOne','04/15/2022','05/14/2022')
 INSERT INTO Sales (salesperson,saledate,amount) VALUES ('Sasha','04/21/2016','56050')
+
+create table Sessions (
+	baby varchar(25) not null primary key,
+	sister varchar(25) not null,
+	start_time time not null,
+	end_time time not null
+);
+
+INSERT INTO Sessions(baby, sister, start_time, end_time) VALUES ('Alice', 'Rory', '08:00', '11:00'), ('Ben', 'Rory', '09:00', '13:00'), ('Cara', 'Amelia', '09:00', '15:30'),('Darren', 'Amelia', '08:00', '10:00'), ('Eustace', 'Amelia', '10:01', '11:30'), ('Merlin', 'Amelia', '09:30', '10:30')
