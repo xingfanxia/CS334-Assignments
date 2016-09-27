@@ -53,8 +53,7 @@ order by P.promo asc;
 -- 	select baby
 -- 	from baby
 
-select *
+select count(1) as overlapAtEnd
 from Sessions b1, Sessions b2
-where b1.baby = b2.baby and b1.sister = b2.sister
-	and b1.start_time <= b2.start_time
-	and b1.end_time >= b2.end_time
+where b1.end_time between b2.start_time and b2.end_time
+group by b2.baby

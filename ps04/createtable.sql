@@ -32,9 +32,9 @@ INSERT INTO Sales (salesperson,saledate,amount) VALUES ('Sasha','04/21/2016','56
 
 create table Sessions (
 	baby varchar(25) not null primary key,
-	sister varchar(25) not null,
+	sitter varchar(25) not null,
 	start_time time not null,
 	end_time time not null
 );
 
-INSERT INTO Sessions(baby, sister, start_time, end_time) VALUES ('Alice', 'Rory', '08:00', '11:00'), ('Ben', 'Rory', '09:00', '13:00'), ('Cara', 'Amelia', '09:00', '15:30'),('Darren', 'Amelia', '08:00', '10:00'), ('Eustace', 'Amelia', '10:01', '11:30'), ('Merlin', 'Amelia', '09:30', '10:30')
+INSERT INTO Sessions(baby, sitter, start_time, end_time) VALUES ('Alice', 'Rory', '08:00', '11:00'), ('Ben', 'Rory', '09:00', '13:00'), ('Cara', 'Amelia', '09:00', '15:30'),('Darren', 'Amelia', '08:00', '10:00'), ('Eustace', 'Amelia', '10:01', '11:30'), ('Merlin', 'Amelia', '09:30', '10:30')
