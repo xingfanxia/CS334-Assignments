@@ -52,8 +52,13 @@ order by P.promo asc;
 -- create view baby_overlap_sessions as
 -- 	select baby
 -- 	from baby
+create view multibabies(sitter, start_time, babycounts) as
+	select s1.sitter, s1.start_time, count(s2.baby)
+	from Sessions s1, Sessions s2
+	where s1.sitter = s2.sitter and s1.start_time between s2.start_time and s2.end_time
+	group by s1.sitter, s1.start_time, s1.baby;
 
-select count(1) as overlapAtEnd
-from Sessions b1, Sessions b2
-where b1.end_time between b2.start_time and b2.end_time
-group by b2.baby
+select s.baby, max(babycounts)
+from Sessions s, multibabies m
+where s.sitter = m.sitter and m.start_time between s.start_time and s.end_time
+group by s.baby;

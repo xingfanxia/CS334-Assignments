@@ -38,3 +38,4 @@ create table Sessions (
 );
 
 INSERT INTO Sessions(baby, sitter, start_time, end_time) VALUES ('Alice', 'Rory', '08:00', '11:00'), ('Ben', 'Rory', '09:00', '13:00'), ('Cara', 'Amelia', '09:00', '15:30'),('Darren', 'Amelia', '08:00', '10:00'), ('Eustace', 'Amelia', '10:01', '11:30'), ('Merlin', 'Amelia', '09:30', '10:30')
+INSERT INTO Sessions(baby, sitter, start_time, end_time) VALUES ('Soap', 'Rory', '9:00', '12:00'), ('dChen', 'Amelia', '11:09', '15:00'), ('dashi', 'Amelia', '10:29', '15:00')
