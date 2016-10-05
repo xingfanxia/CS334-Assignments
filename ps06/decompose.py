@@ -215,6 +215,10 @@ fd1 = (['B'],['C'])
 fd2 = (['D'],['A'])
 allfds = [fd1, fd2]
 
+# fd1 = ([1], [2])
+# fd2 = ([2,3], [4,5])
+# allfds = [fd1, fd2]
+# print(closure([1,2,3,4,5], allfds))
 # for output
 print "-------------- Find Closure of F ---------------------"
 print closure(R, allfds)
