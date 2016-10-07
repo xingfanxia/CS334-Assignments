@@ -21,10 +21,14 @@ public class SlottedBlock
      */
     public static final int INVALID_BLOCK = -1;
     public static final int SIZE_OF_INT = 4;
+    public int nextID;
+    public int prevID;
+    public int freespace;
 
     private byte[] data;
     private IntBuffer intBuffer;
     private int intBufferLength;
+    private int blockId;
 
     /**
      * Constructs a slotted block by wrapping around a block object already
@@ -45,6 +49,9 @@ public class SlottedBlock
      */
     public void init()
     {
+        blockId = 1;
+        nextID = INVALID_BLOCK;
+        prevID = INVALID_BLOCK;
     }
 
 
@@ -54,6 +61,7 @@ public class SlottedBlock
      */
     public void setBlockId(int blockId)
     {
+        this.blockId = blockId;
     }
 
     /**
@@ -62,7 +70,7 @@ public class SlottedBlock
      */
     public int getBlockId()
     {
-        return -1;
+        return this.blockId;
     }
 
     /**
@@ -71,6 +79,7 @@ public class SlottedBlock
      */
     public void setNextBlockId(int blockId)
     {
+       nextID = blockId;
     }
 
     /**
@@ -79,7 +88,7 @@ public class SlottedBlock
      */
     public int getNextBlockId()
     {
-        return -1;
+        return nextID;
     }
 
     /**
@@ -88,6 +97,7 @@ public class SlottedBlock
      */
     public void setPrevBlockId(int blockId)
     {
+        prevID = blockId;
     }
 
     /**
@@ -96,7 +106,7 @@ public class SlottedBlock
      */
     public int getPrevBlockId()
     {
-        return -1;
+        return prevID;
     }
 
     /**
