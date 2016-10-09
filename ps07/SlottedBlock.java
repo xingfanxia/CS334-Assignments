@@ -21,14 +21,11 @@ public class SlottedBlock
      */
     public static final int INVALID_BLOCK = -1;
     public static final int SIZE_OF_INT = 4;
-    public int nextID;
-    public int prevID;
-    public int freespace;
 
     private byte[] data;
     private IntBuffer intBuffer;
     private int intBufferLength;
-    private int blockId;
+    // private IntBuffer[] records;
 
     /**
      * Constructs a slotted block by wrapping around a block object already
@@ -49,9 +46,16 @@ public class SlottedBlock
      */
     public void init()
     {
-        blockId = 1;
-        nextID = INVALID_BLOCK;
-        prevID = INVALID_BLOCK;
+        //prev blcokID
+        intBuffer.put(0, INVALID_BLOCK);
+        //current blockID
+        intBuffer.put(1, INVALID_BLOCK);
+        //next blockID
+        intBuffer.put(2, INVALID_BLOCK);
+        //slot number count
+        intBuffer.put(3, 0);
+        //pointer to beginning of free space
+        intBuffer.put(4, data.length - 1);
     }
 
 
@@ -61,7 +65,7 @@ public class SlottedBlock
      */
     public void setBlockId(int blockId)
     {
-        this.blockId = blockId;
+        intBuffer.put(1, blockId);
     }
 
     /**
@@ -70,7 +74,7 @@ public class SlottedBlock
      */
     public int getBlockId()
     {
-        return this.blockId;
+        return intBuffer.get(1);
     }
 
     /**
@@ -79,7 +83,7 @@ public class SlottedBlock
      */
     public void setNextBlockId(int blockId)
     {
-       nextID = blockId;
+        intBuffer.put(2, blockId);
     }
 
     /**
@@ -88,8 +92,8 @@ public class SlottedBlock
      */
     public int getNextBlockId()
     {
-        return nextID;
-    }
+        return intBuffer.get(2);
+    } 
 
     /**
      * Sets the previous block id.
@@ -97,16 +101,15 @@ public class SlottedBlock
      */
     public void setPrevBlockId(int blockId)
     {
-        prevID = blockId;
+        intBuffer.put(0, blockId);
     }
-
     /**
      * Gets the previous block id.
      * @return the previous block id.
      */
     public int getPrevBlockId()
     {
-        return prevID;
+        return intBuffer.get(0);
     }
 
     /**
@@ -120,32 +123,81 @@ public class SlottedBlock
      * @return the amount of available space in bytes
      */
     public int getAvailableSpace()
-    {
-        return -1;
+    {   
+        int freePointer = intBuffer.get(4);
+        int slot_cnt = intBuffer.get(3);
+        int avail = (freePointer - (7*SIZE_OF_INT)- (2*slot_cnt*SIZE_OF_INT));
+        return avail;
     }
-        
+
 
     /**
      * Dumps out to the screen the # of entries in the block, the location where
      * the free space starts, the slot array in a readable fashion, and the
      * actual contents of each record. (This method merely exists for debugging
      * and testing purposes.)
-    */ 
+    */
     public void dumpBlock()
     {
+        int slot_cnt = intBuffer.get(3);
+        System.out.println("Number of entries: " + slot_cnt);
+        int start_free = (2*slot_cnt + 5) * SIZE_OF_INT;
+        System.out.println("Free space starts at: " + start_free);
+        // the Slot array index
+        System.out.println("Here is the slot array : [\n");
+        for (int i = 5; i < start_free; i++) {
+            System.out.println(intBuffer.get(i));
+        }
+        System.out.println("]\n");
+        // the Records
+        int r_pos;
+        int r_size;
+        for(int i=5; i< (slot_cnt*2+5); i+=2){
+            r_pos = intBuffer.get(i);
+            r_size = intBuffer.get(i+1);
+            for (int j=r_pos; j>(r_pos-r_size); j--) {
+                System.out.print(data[j]);
+            }
+            System.out.print("\n");
+        }
     }
 
     /**
      * Inserts a new record into the block.
      * @param record the record to be inserted. A copy of the data is
      * placed in the block.
-     * @return the RID of the new record 
+     * @return the RID of the new record
      * @throws BlockFullException if there is not enough room for the
      * record in the block.
     */
     public RID insertRecord(byte[] record)
     {
-        return null;
+        int slot_cnt = intBuffer.get(3);
+        if (this.getAvailableSpace() < record.length)
+            throw new BlockFullException();
+
+        // Pointer to end fo free space
+        int freePointer = intBuffer.get(4);
+        // update pos
+        intBuffer.put((slot_cnt*2+5), freePointer);
+        // update size
+        intBuffer.put((slot_cnt*2+6), record.length);
+
+        //actually do it
+        int i = 0;
+        while (i<record.length) {
+            data[freePointer] = record[i];
+            freePointer--;
+            i++;
+        }
+
+        //update freePointer
+        intBuffer.put(4, freePointer);
+        intBuffer.put(3, slot_cnt + 1);
+        int bID = intBuffer.get(1);
+        int sID = intBuffer.get(3) - 1;
+        RID n_record  = new RID(bID, sID);
+        return n_record;
     }
 
     /**
@@ -206,7 +258,31 @@ public class SlottedBlock
     */
     public byte[] getRecord(RID rid)
     {
-        return null;
+        // if the block id within curRid is invalid
+        int sID = rid.slotNum;
+        int bID = rid.blockId;
+        if (sID == INVALID_BLOCK) {
+            throw new BadBlockIdException();
+        }
+        if (bID == INVALID_BLOCK) {
+            throw new BadSlotIdException();
+        }
+        int r_pos = intBuffer.get(5+(2*sID));
+        int r_size = intBuffer.get(5+(2*sID+1));
+
+        if (r_size == -1) { //if invalid
+            byte[] result = new byte[0];
+            return result;
+        }
+
+
+        byte[] r_content = new byte[r_size];
+        int cur = 0;
+        for (int i = r_pos; i > (r_pos-r_size); i--) {
+            r_content[cur] = data[i];
+            cur++;
+        }
+        return r_content;
     }
 
     /**
@@ -215,6 +291,7 @@ public class SlottedBlock
      */
     public boolean empty()
     {
-        return false;
+        boolean a = (intBuffer.get(4) == intBufferLength-1);
+        return a;
     }
 }
