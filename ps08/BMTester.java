@@ -72,92 +72,92 @@ public class BMTester
     // test 2
     //      Testing replacement policy
     //------------------------------------------------------------
-    public static class Test2 implements Testable
-    {
-        public void test(BufferManager bufMgr, String filename)
-            throws Exception
-        {
-            System.out.println("------- Test 2 -------");
+    // public static class Test2 implements Testable
+    // {
+    //     public void test(BufferManager bufMgr, String filename)
+    //         throws Exception
+    //     {
+    //         System.out.println("------- Test 2 -------");
 
-            // Allocate some pages
-            bufMgr.newPage(5*bufMgr.poolSize(),filename);
-            bufMgr.unpinPage(0,filename,false);
+    //         // Allocate some pages
+    //         bufMgr.newPage(5*bufMgr.poolSize(),filename);
+    //         bufMgr.unpinPage(0,filename,false);
 
-            // Pin and unpin a series of pages, the first half are loved,
-            // the latter half are hated.
+    //         // Pin and unpin a series of pages, the first half are loved,
+    //         // the latter half are hated.
         
-            //Pin all pages in the buffer and unpin them in reverse order
-            //Clock will behave as MRU in that case
+    //         //Pin all pages in the buffer and unpin them in reverse order
+    //         //Clock will behave as MRU in that case
         
-            int frame[] = new int[bufMgr.poolSize()];
-            Page page = null;
-            for (int i=0; i<bufMgr.poolSize(); i++)
-            {
-                page = bufMgr.pinPage(i+5,filename,false);
-                if (page == null)
-                    throw new TestFailedException("Unable to pin page");
-                frame[i] = bufMgr.findFrame(i+5,filename);
-                if (frame[i] < 0 || frame[i] >= bufMgr.poolSize())
-                    throw new TestFailedException("Invalid frame returned");
+    //         int frame[] = new int[bufMgr.poolSize()];
+    //         Page page = null;
+    //         for (int i=0; i<bufMgr.poolSize(); i++)
+    //         {
+    //             page = bufMgr.pinPage(i+5,filename,false);
+    //             if (page == null)
+    //                 throw new TestFailedException("Unable to pin page");
+    //             frame[i] = bufMgr.findFrame(i+5,filename);
+    //             if (frame[i] < 0 || frame[i] >= bufMgr.poolSize())
+    //                 throw new TestFailedException("Invalid frame returned");
 
-                System.out.println("Page " + (i+5) +" at frame " + frame[i] +
-                                   " is pinned.");
-            }
+    //             System.out.println("Page " + (i+5) +" at frame " + frame[i] +
+    //                                " is pinned.");
+    //         }
         
-            //Try pinning an extra page
-            page = bufMgr.pinPage(bufMgr.poolSize()+6,filename,false);
-            if (page != null)
-                throw new TestFailedException("Pinned page in full buffer");
+    //         //Try pinning an extra page
+    //         page = bufMgr.pinPage(bufMgr.poolSize()+6,filename,false);
+    //         if (page != null)
+    //             throw new TestFailedException("Pinned page in full buffer");
 
-            //Start unpinning pages
-            for (int i=bufMgr.poolSize()-1; i>=0 ;i--)
-            {
-                bufMgr.unpinPage(i+5,filename,true);
-                System.out.println("Page " + (i+5) +" at frame " + frame[i] +
-                                   " is unpinned.");
-            }
+    //         //Start unpinning pages
+    //         for (int i=bufMgr.poolSize()-1; i>=0 ;i--)
+    //         {
+    //             bufMgr.unpinPage(i+5,filename,true);
+    //             System.out.println("Page " + (i+5) +" at frame " + frame[i] +
+    //                                " is unpinned.");
+    //         }
 
-            //Start pinning a new set of pages again.  The page frames
-            //should be exactly the same order as the previous one
-            //Clock in that case will resemble MRU
-            for (int i=bufMgr.poolSize(); i < 2*bufMgr.poolSize(); i++){
-                page = bufMgr.pinPage(i+5,filename,false);
-                if (page == null)
-                    throw new TestFailedException("Unable to pin page");
+    //         //Start pinning a new set of pages again.  The page frames
+    //         //should be exactly the same order as the previous one
+    //         //Clock in that case will resemble MRU
+    //         for (int i=bufMgr.poolSize(); i < 2*bufMgr.poolSize(); i++){
+    //             page = bufMgr.pinPage(i+5,filename,false);
+    //             if (page == null)
+    //                 throw new TestFailedException("Unable to pin page");
 
-                int spot = bufMgr.findFrame(i+5,filename);
-                System.out.println("Page " + (i+5) + " pinned in frame "
-                                   + spot);
+    //             int spot = bufMgr.findFrame(i+5,filename);
+    //             System.out.println("Page " + (i+5) + " pinned in frame "
+    //                                + spot);
 
-                if (spot != frame[i-bufMgr.poolSize()])
-                    throw new TestFailedException("Frame number incorrect");
-            }
+    //             if (spot != frame[i-bufMgr.poolSize()])
+    //                 throw new TestFailedException("Frame number incorrect");
+    //         }
 
-            //Unpin half the pages in order
-            for (int i=bufMgr.poolSize(); i < 2*bufMgr.poolSize(); i+=2)
-            {
-                bufMgr.unpinPage(i+5,filename,true);
-                System.out.println("Page " + (i+5) +" at frame " +
-                    frame[i-bufMgr.poolSize()] + " is unpinned.");
-            }
+    //         //Unpin half the pages in order
+    //         for (int i=bufMgr.poolSize(); i < 2*bufMgr.poolSize(); i+=2)
+    //         {
+    //             bufMgr.unpinPage(i+5,filename,true);
+    //             System.out.println("Page " + (i+5) +" at frame " +
+    //                 frame[i-bufMgr.poolSize()] + " is unpinned.");
+    //         }
 
-            //Now, pin a new set of pages
-            //Again, it should resemble the previous sequence
-            //In this case, Clock behaves as LRU
-            for (int i=2*bufMgr.poolSize(); i < 3*bufMgr.poolSize(); i+=2)
-            {
-                page = bufMgr.pinPage(i+5,filename,false);
-                if (page == null)
-                    throw new TestFailedException("Unable to pin page");
-                int spot = bufMgr.findFrame(i+5,filename);
-                bufMgr.unpinPage(i+5,filename,true);
-                bufMgr.unpinPage(i-bufMgr.poolSize()+6,filename,true);
-                System.out.println("Page "+(i+5)+" pinned in frame " + spot);
-                if (spot != frame[i-2*bufMgr.poolSize()])
-                    throw new TestFailedException("Frame number incorrect");
-            }
-        }
-    }
+    //         //Now, pin a new set of pages
+    //         //Again, it should resemble the previous sequence
+    //         //In this case, Clock behaves as LRU
+    //         for (int i=2*bufMgr.poolSize(); i < 3*bufMgr.poolSize(); i+=2)
+    //         {
+    //             page = bufMgr.pinPage(i+5,filename,false);
+    //             if (page == null)
+    //                 throw new TestFailedException("Unable to pin page");
+    //             int spot = bufMgr.findFrame(i+5,filename);
+    //             bufMgr.unpinPage(i+5,filename,true);
+    //             bufMgr.unpinPage(i-bufMgr.poolSize()+6,filename,true);
+    //             System.out.println("Page "+(i+5)+" pinned in frame " + spot);
+    //             if (spot != frame[i-2*bufMgr.poolSize()])
+    //                 throw new TestFailedException("Frame number incorrect");
+    //         }
+    //     }
+    // }
 
 
     public static final String FILENAME = "__testing";
@@ -194,7 +194,7 @@ public class BMTester
         
         // Run the tests.
         runTest(new Test1());
-        runTest(new Test2());
+        // runTest(new Test2());
         
         // Clean up
         DBFile.erase(FILENAME);

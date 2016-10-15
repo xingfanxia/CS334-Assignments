@@ -92,11 +92,12 @@ public class BufferManager
                 // if (frameTable[index].dirty) {
                 // flushPage(index, temp)
                 // }
-                temp.readPage(pinPageId, bufferPool);
+                temp.readPage(pinPageId, bufferPool[pinPageId]);
             } else {
-                temp.readPage(pinPageId, bufferPool);
+                temp.readPage(pinPageId, bufferPool[pinPageId]);
             }
         }
+        return bufferPool[pinPageId];
     }
 
     /**
@@ -151,13 +152,14 @@ public class BufferManager
      * @throws DBFile.FileFullException if there are not enough free pages.
      * @throws IOException passed through from underlying file system.
      */
-    public Pair<Integer,Page> newPage(int numPages, String fileName)
-        throws IOException
-    {
-        // if (!full) {
+    // public Pair<Integer,Page> newPage(int numPages, String fileName)
+    //     throws IOException
+    // {
+    //     // if (!full) {
 
-        // }
-    }
+    //     // }
+        
+    // }
 
     /**
      * Deallocates a page from the underlying database. Verifies that
@@ -199,7 +201,7 @@ public class BufferManager
         if (directory.get(pageId) != null) {
             if (frameTable[directory.get(pageId)].dirty) {
                 DBFile temp = new DBFile(fileName);
-                temp.writePage(pageId, directory.get(pageId));
+                temp.writePage(pageId, bufferPool[pageId]);
                 frameTable[directory.get(pageId)].dirty = false;
             }
         }
