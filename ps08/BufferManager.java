@@ -84,6 +84,7 @@ public class BufferManager
             FrameDescriptor current = frameTable[directory.get(pinPageId)];
             current.pinCount++;
         } else {
+            DBFile temp = new DBFile("temp");
             if (full) {
                 // choose a victim page and then flush the old page if
                 // empty and repalce the old with new
@@ -91,9 +92,9 @@ public class BufferManager
                 // if (frameTable[index].dirty) {
                 // flushPage(index, temp)
                 // }
-                readPage(pinPageId, bufferPool);
+                temp.readPage(pinPageId, bufferPool);
             } else {
-                readPage(pinPageId, bufferPool);
+                temp.readPage(pinPageId, bufferPool);
             }
         }
     }
