@@ -1,5 +1,5 @@
 import java.io.*;
-
+import java.util.HashMap;
 /**
  * Buffer manager. Manages a memory-based buffer pool of pages.
  * @author Dave Musicant, with considerable material reused from the
@@ -58,7 +58,7 @@ public class BufferManager
      */
     public int poolSize()
     {
-        return this.size;
+        return size;
     }
 
     /**
@@ -79,11 +79,10 @@ public class BufferManager
     public Page pinPage(int pinPageId, String fileName, boolean emptyPage)
         throws IOException
     {
-        if (directory.get(pinPageID) != null) {
-            FrameDescriptor current = frameTable[directory.get(pinPageID)];
+        if (directory.get(pinPageId) != null) {
+            FrameDescriptor current = frameTable[directory.get(pinPageId)];
             current.pinCount++;
         } else {
-            DBfile temp = new DBfile(fileName);
             if (full) {
                 // choose a victim page and then flush the old page if
                 // empty and repalce the old with new
@@ -91,9 +90,9 @@ public class BufferManager
                 // if (frameTable[index].dirty) {
                 // flushPage(index, temp)
                 // }
-                readPage(pinPageId, temp);
+                readPage(pinPageId, bufferPool);
             } else {
-                readPage(pinPageId, temp);
+                readPage(pinPageId, bufferPool);
             }
         }
     }
@@ -114,15 +113,16 @@ public class BufferManager
     public void unpinPage(int unpinPageId, String fileName, boolean dirty)
         throws IOException
     {
-        if(directory.get(unpinPageID) != null) {
-            FrameDescriptor currentDes = frameTable[directory.get(unpinPageID)];
+        if (directory.get(unpinPageId) != null) {
+            FrameDescriptor currentDes = frameTable[directory.get(unpinPageId)];
             if (currentDes.dirty) {
-                try {
-                    flushPage(index, temp);
-                } catch (IOException) 
+                // try {
+                //     flushPage(index, temp);
+                // } catch (IOException e) {
+                // }
             }
 
-            if (currentDes,pinCount > 0) {
+            if (currentDes.pinCount > 0) {
                 currentDes.pinCount--;
                 // what else to do
             } else {
@@ -168,16 +168,16 @@ public class BufferManager
      */
     public void freePage(int pageId, String fileName) throws IOException
     {
-        if (directory.get(pageID) != null) {
-            if (frameTable[directory.get(pageID)].pinCount > 1) {
-                throw new PagePinnedException;
+        if (directory.get(pageId) != null) {
+            if (frameTable[directory.get(pageId)].pinCount > 1) {
+                throw new PagePinnedException();
             }
             if (full) {
                 full = false;
             }
         }
-        DBfile temp = new DBfile(fileName);
-        // temp.deallocatePages(pageID)
+        DBFile temp = new DBFile(fileName);
+        // temp.deallocatePages(pageId)
     }
 
     /**
@@ -194,12 +194,11 @@ public class BufferManager
      */
     public void flushPage(int pageId, String fileName) throws IOException
     {
-        if (directory.get(pageID) != null) {
-            if (frameTable[directory.get(pageID)].dirty) {
-                Page toWrite = new Page(bufferPool[directory.get(pageID)]);
-                DBfile temp = new DBfile(fileName);
-                temp.writePage(pageID, toWrite);
-                frameTable[directory.get(pageID)].dirty = false;
+        if (directory.get(pageId) != null) {
+            if (frameTable[directory.get(pageId)].dirty) {
+                DBFile temp = new DBFile(fileName);
+                temp.writePage(pageId, directory.get(pageId));
+                frameTable[directory.get(pageId)].dirty = false;
             }
         }
     }
@@ -211,16 +210,16 @@ public class BufferManager
      * database has been erased.
      * @throws IOException passed through from underlying file system.
      */
-    public void flushAllPages() throws IOException
-    {
-        for (int i = 0; i < buffPool.length; i++) {
-            if (frameTable[i] != null) {
-                flushPage(new PageId(frameTable[i].getPagenumber()));
-            } else {
-                break;
-            }
-        }
-    }
+    // public void flushAllPages() throws IOException
+    // {
+    //     for (int i = 0; i < buffPool.length; i++) {
+    //         if (frameTable[i] != null) {
+    //             flushPage((frameTable[i]), fileName);
+    //         } else {
+    //             break;
+    //         }
+    //     }
+    // }
         
     /**
      * Returns buffer pool location for a particular pageId. This
@@ -231,7 +230,7 @@ public class BufferManager
      * @return the frame location for the page of interested. Returns
      * -1 if the page is not in the pool.
     */
-    public int findFrame(int pageId, String fileName)
-    {
-    }
+    // public int findFrame(int pageId, String fileName)
+    // {
+    // }
 }
