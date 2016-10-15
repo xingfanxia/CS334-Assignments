@@ -114,6 +114,23 @@ public class BufferManager
     public void unpinPage(int unpinPageId, String fileName, boolean dirty)
         throws IOException
     {
+        if(directory.get(unpinPageID) != null) {
+            FrameDescriptor currentDes = frameTable[directory.get(unpinPageID)];
+            if (currentDes.dirty) {
+                try {
+                    flushPage(index, temp);
+                } catch (IOException) 
+            }
+
+            if (currentDes,pinCount > 0) {
+                currentDes.pinCount--;
+                // what else to do
+            } else {
+                throw new PageNotPinnedException();
+            }
+        } else {
+            throw new PageNotPinnedException();
+        }
     }
 
 
@@ -135,6 +152,9 @@ public class BufferManager
     public Pair<Integer,Page> newPage(int numPages, String fileName)
         throws IOException
     {
+        // if (!full) {
+
+        // }
     }
 
     /**
@@ -148,6 +168,16 @@ public class BufferManager
      */
     public void freePage(int pageId, String fileName) throws IOException
     {
+        if (directory.get(pageID) != null) {
+            if (frameTable[directory.get(pageID)].pinCount > 1) {
+                throw new PagePinnedException;
+            }
+            if (full) {
+                full = false;
+            }
+        }
+        DBfile temp = new DBfile(fileName);
+        // temp.deallocatePages(pageID)
     }
 
     /**
@@ -164,6 +194,14 @@ public class BufferManager
      */
     public void flushPage(int pageId, String fileName) throws IOException
     {
+        if (directory.get(pageID) != null) {
+            if (frameTable[directory.get(pageID)].dirty) {
+                Page toWrite = new Page(bufferPool[directory.get(pageID)]);
+                DBfile temp = new DBfile(fileName);
+                temp.writePage(pageID, toWrite);
+                frameTable[directory.get(pageID)].dirty = false;
+            }
+        }
     }
 
     /**
@@ -175,6 +213,13 @@ public class BufferManager
      */
     public void flushAllPages() throws IOException
     {
+        for (int i = 0; i < buffPool.length; i++) {
+            if (frameTable[i] != null) {
+                flushPage(new PageId(frameTable[i].getPagenumber()));
+            } else {
+                break;
+            }
+        }
     }
         
     /**
