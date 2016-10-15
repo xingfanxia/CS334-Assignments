@@ -22,6 +22,7 @@ public class BufferManager
         private String fileName;
         private int pinCount;
         private boolean dirty;
+        private int reference_bit;
         
         public FrameDescriptor()
         {
