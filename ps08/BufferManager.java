@@ -1,5 +1,5 @@
 import java.io.*;
-import java.util.HashMap;
+
 /**
  * Buffer manager. Manages a memory-based buffer pool of pages.
  * @author Dave Musicant, with considerable material reused from the
@@ -22,7 +22,6 @@ public class BufferManager
         private String fileName;
         private int pinCount;
         private boolean dirty;
-        private int reference_bit;
         
         public FrameDescriptor()
         {
@@ -38,19 +37,15 @@ public class BufferManager
     // probably need more.
     private Page[] bufferPool;
     private FrameDescriptor[] frameTable;
-    private int size;
-    private HashMap<Integer, Integer> directory;
-    private boolean full;
+
     /**
      * Creates a buffer manager with the specified size.
      * @param poolSize the number of pages that the buffer pool can hold.
      */
     public BufferManager(int poolSize)
-    {   
+    {
         bufferPool = new Page[poolSize];
         frameTable = new FrameDescriptor[poolSize];
-        directory = new HashMap<Integer, Integer>();
-        size = poolSize;
     }
 
     /**
@@ -59,7 +54,7 @@ public class BufferManager
      */
     public int poolSize()
     {
-        return size;
+        return 0;
     }
 
     /**
@@ -80,24 +75,43 @@ public class BufferManager
     public Page pinPage(int pinPageId, String fileName, boolean emptyPage)
         throws IOException
     {
-        if (directory.get(pinPageId) != null) {
-            FrameDescriptor current = frameTable[directory.get(pinPageId)];
-            current.pinCount++;
-        } else {
-            DBFile temp = new DBFile("temp");
-            if (full) {
-                // choose a victim page and then flush the old page if
-                // empty and repalce the old with new
-                // Choose a index
-                // if (frameTable[index].dirty) {
-                // flushPage(index, temp)
-                // }
-                temp.readPage(pinPageId, bufferPool[pinPageId]);
-            } else {
-                temp.readPage(pinPageId, bufferPool[pinPageId]);
+        Page pinned = null;
+        int index = findFrame(pinPageId,fileName);
+        if(index>-1){
+            pinned = bufferPool[index];
+        }else{
+            // readPage
+            DBFile dbFile = new DBFile(fileName);
+
+            for(int i = 0; i < bufferPool.length; i++){
+                FrameDescriptor descriptor = frameTable[i];
+                if(descriptor == null || descriptor.pinCount == 0){
+                    // if replacing and is dirty flush
+                    if(descriptor != null && descriptor.dirty) flushPage(descriptor.pageNum,fileName);
+                    // create descriptor
+                    FrameDescriptor frameDescriptor = new FrameDescriptor();
+                    frameDescriptor.pageNum = pinPageId;
+                    frameDescriptor.fileName = fileName;
+                    frameDescriptor.pinCount = 1;
+                    frameDescriptor.dirty = true;
+
+                    // create  page
+                    pinned = new Page();
+                    if(!emptyPage){
+                        dbFile.readPage(pinPageId,pinned);
+                    }
+
+                    //register
+                    frameTable[i] = frameDescriptor;
+                    bufferPool[i] = pinned;
+                    break;
+                }
             }
         }
-        return bufferPool[pinPageId];
+
+
+
+        return pinned;
     }
 
     /**
@@ -116,22 +130,22 @@ public class BufferManager
     public void unpinPage(int unpinPageId, String fileName, boolean dirty)
         throws IOException
     {
-        if (directory.get(unpinPageId) != null) {
-            FrameDescriptor currentDes = frameTable[directory.get(unpinPageId)];
-            if (currentDes.dirty) {
-                // try {
-                //     flushPage(index, temp);
-                // } catch (IOException e) {
-                // }
+        boolean success = false;
+        for(int i = 0; i < frameTable.length; i++){
+            FrameDescriptor descriptor = frameTable[i];
+            if(descriptor != null
+                    && descriptor.pageNum == unpinPageId
+                    && descriptor.fileName.equals(fileName)
+                    && descriptor.pinCount > 0){
+                descriptor.pinCount --;
+                if(dirty){
+                    DBFile dbFile = new DBFile(fileName);
+                    dbFile.writePage(descriptor.pageNum,bufferPool[i]);
+                }
+                success = true;
             }
-
-            if (currentDes.pinCount > 0) {
-                currentDes.pinCount--;
-                // what else to do
-            } else {
-                throw new PageNotPinnedException();
-            }
-        } else {
+        }
+        if(!success){
             throw new PageNotPinnedException();
         }
     }
@@ -152,14 +166,28 @@ public class BufferManager
      * @throws DBFile.FileFullException if there are not enough free pages.
      * @throws IOException passed through from underlying file system.
      */
-    // public Pair<Integer,Page> newPage(int numPages, String fileName)
-    //     throws IOException
-    // {
-    //     // if (!full) {
+    public Pair<Integer,Page> newPage(int numPages, String fileName)
+        throws IOException
+    {
+        //open db
+        DBFile dbFile  = new DBFile(fileName);
+        // allocate
+        dbFile.allocatePages(numPages);
 
-    //     // }
-        
-    // }
+        Page pinned = pinPage(0,fileName,false);
+
+
+//        for(FrameDescriptor descriptor: frameTable){
+//            if(descriptor!=null)
+//                System.out.println("File name: "+descriptor.fileName+", pageId: "+descriptor.pageNum +", "+"pinCount: "+descriptor.pinCount);
+//        }
+
+        if(pinned !=null){
+            return new Pair<Integer, Page>(0,pinned);
+        }else{
+            return null;
+        }
+    }
 
     /**
      * Deallocates a page from the underlying database. Verifies that
@@ -172,16 +200,6 @@ public class BufferManager
      */
     public void freePage(int pageId, String fileName) throws IOException
     {
-        if (directory.get(pageId) != null) {
-            if (frameTable[directory.get(pageId)].pinCount > 1) {
-                throw new PagePinnedException();
-            }
-            if (full) {
-                full = false;
-            }
-        }
-        DBFile temp = new DBFile(fileName);
-        // temp.deallocatePages(pageId)
     }
 
     /**
@@ -198,13 +216,6 @@ public class BufferManager
      */
     public void flushPage(int pageId, String fileName) throws IOException
     {
-        if (directory.get(pageId) != null) {
-            if (frameTable[directory.get(pageId)].dirty) {
-                DBFile temp = new DBFile(fileName);
-                temp.writePage(pageId, bufferPool[pageId]);
-                frameTable[directory.get(pageId)].dirty = false;
-            }
-        }
     }
 
     /**
@@ -214,16 +225,9 @@ public class BufferManager
      * database has been erased.
      * @throws IOException passed through from underlying file system.
      */
-    // public void flushAllPages() throws IOException
-    // {
-    //     for (int i = 0; i < buffPool.length; i++) {
-    //         if (frameTable[i] != null) {
-    //             flushPage((frameTable[i]), fileName);
-    //         } else {
-    //             break;
-    //         }
-    //     }
-    // }
+    public void flushAllPages() throws IOException
+    {
+    }
         
     /**
      * Returns buffer pool location for a particular pageId. This
@@ -234,7 +238,16 @@ public class BufferManager
      * @return the frame location for the page of interested. Returns
      * -1 if the page is not in the pool.
     */
-    // public int findFrame(int pageId, String fileName)
-    // {
-    // }
+    public int findFrame(int pageId, String fileName)
+    {
+        for (int i = 0; i< frameTable.length; i++){
+            FrameDescriptor descriptor = frameTable[i];
+            if(descriptor!=null
+                    && descriptor.pageNum == pageId
+                    && descriptor.fileName.equals(fileName)){
+                return i;
+            }
+        }
+        return -1;
+    }
 }
