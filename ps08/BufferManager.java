@@ -37,7 +37,7 @@ public class BufferManager
     // probably need more.
     private Page[] bufferPool;
     private FrameDescriptor[] frameTable;
-
+    private int size;
     /**
      * Creates a buffer manager with the specified size.
      * @param poolSize the number of pages that the buffer pool can hold.
@@ -46,6 +46,7 @@ public class BufferManager
     {
         bufferPool = new Page[poolSize];
         frameTable = new FrameDescriptor[poolSize];
+        size = poolSize;
     }
 
     /**
@@ -54,7 +55,7 @@ public class BufferManager
      */
     public int poolSize()
     {
-        return 0;
+        return size;
     }
 
     /**

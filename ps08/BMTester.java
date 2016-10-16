@@ -27,17 +27,21 @@ public class BMTester
     {
         public void test(BufferManager bufMgr, String filename)
             throws Exception
-        {
+        {   
+
             int first = 5;
             int last = first + bufMgr.poolSize() + 5;
-
             // Allocate some pages
             bufMgr.newPage(last+10,filename);
             bufMgr.unpinPage(0,filename,false);
             
+            System.out.println("poolSize: " + bufMgr.poolSize());
+            System.out.println("first: " + first);
+            System.out.println("last: " + last);
             System.out.println("------- Test 1 -------");
             for (int i=first; i<=last; i++)
             {
+               
                 Page page = bufMgr.pinPage(i,filename,false);
                 if (page == null)
                     throw new TestFailedException("Unable to pin page " +
