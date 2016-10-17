@@ -160,7 +160,8 @@ public class BMTester
                 if (spot != frame[i-2*bufMgr.poolSize()])
                     throw new TestFailedException("Frame number incorrect");
             }
-            bufMgr.flushAllPages(filename);
+            // bufMgr.flushAllPages(filename);
+            // bufMgr.freePage(44, filename);
         }
     }
 

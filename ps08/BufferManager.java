@@ -344,8 +344,12 @@ public class BufferManager
     public void flushAllPages(String fileName) throws IOException
     {
         for (int i = 0; i < bufferPool.length; i++) {
-            if (frameTable[i] != null)
+            if (frameTable[i] != null) {
+                // // check if dirty
+                // System.out.println(frameTable[i].pageNum);
+                // System.out.println(frameTable[i].dirty);
                 flushPage(frameTable[i].pageNum, fileName);
+            }
             // else
             //     break;
         }
