@@ -160,6 +160,7 @@ public class BMTester
                 if (spot != frame[i-2*bufMgr.poolSize()])
                     throw new TestFailedException("Frame number incorrect");
             }
+            bufMgr.flushAllPages(filename);
         }
     }
 
@@ -198,7 +199,7 @@ public class BMTester
         
         // Run the tests.
         runTest(new Test1());
-//        runTest(new Test2());
+        runTest(new Test2());
         
         // Clean up
         DBFile.erase(FILENAME);

@@ -1,9 +1,8 @@
 import java.io.*;
+import java.util.HashMap;
 
 /**
  * Buffer manager. Manages a memory-based buffer pool of pages.
- * @author Dave Musicant, with considerable material reused from the
- * UW-Madison Minibase project
  */
 public class BufferManager
 {
@@ -22,6 +21,7 @@ public class BufferManager
         private String fileName;
         private int pinCount;
         private boolean dirty;
+        private boolean referenceBit;
         
         public FrameDescriptor()
         {
@@ -29,6 +29,7 @@ public class BufferManager
             pinCount = 0;
             fileName = null;
             dirty = false;
+            referenceBit = false;
         }
 
     }
@@ -37,7 +38,11 @@ public class BufferManager
     // probably need more.
     private Page[] bufferPool;
     private FrameDescriptor[] frameTable;
-    private int size;
+    private HashMap<Integer, Integer> allPages;
+    private int poolCapacity;
+    private int numpages;
+    private int clockHand;
+
     /**
      * Creates a buffer manager with the specified size.
      * @param poolSize the number of pages that the buffer pool can hold.
@@ -45,8 +50,10 @@ public class BufferManager
     public BufferManager(int poolSize)
     {
         bufferPool = new Page[poolSize];
+        poolCapacity = poolSize;
         frameTable = new FrameDescriptor[poolSize];
-        size = poolSize;
+        allPages = new HashMap<Integer,Integer>(); //create hashmap with pageId as key, index frame of page as value
+        clockHand = -1;
     }
 
     /**
@@ -55,7 +62,7 @@ public class BufferManager
      */
     public int poolSize()
     {
-        return size;
+        return poolCapacity;
     }
 
     /**
@@ -76,45 +83,111 @@ public class BufferManager
     public Page pinPage(int pinPageId, String fileName, boolean emptyPage)
         throws IOException
     {
-        Page pinned = null;
-        int index = findFrame(pinPageId,fileName);
-        if(index>-1){
-            pinned = bufferPool[index];
-        }else{
-            // readPage
-            DBFile dbFile = new DBFile(fileName);
-
-            for(int i = 0; i < bufferPool.length; i++){
-                FrameDescriptor descriptor = frameTable[i];
-                if(descriptor == null || descriptor.pinCount == 0){
-                    // if replacing and is dirty flush
-                    if(descriptor != null && descriptor.dirty) flushPage(descriptor.pageNum,fileName);
-                    // create descriptor
-                    FrameDescriptor frameDescriptor = new FrameDescriptor();
-                    frameDescriptor.pageNum = pinPageId;
-                    frameDescriptor.fileName = fileName;
-                    frameDescriptor.pinCount = 1;
-                    frameDescriptor.dirty = true;
-
-                    // create  page
-                    pinned = new Page();
-                    if(!emptyPage){
-                        dbFile.readPage(pinPageId,pinned);
-                    }
-
-                    //register
-                    frameTable[i] = frameDescriptor;
-                    bufferPool[i] = pinned;
-                    break;
-                }
+        if (emptyPage) { //if page is empty, return null
+            System.out.println("The page is empty.");
+            return null;
+        }
+        numPages();
+        int numPinned = 0;
+        for (int i=0; i<numpages; i++){
+            if (frameTable[i].pinCount != 0){
+                numPinned++;
             }
         }
-
-
-
-        return pinned;
+        if (numPinned == poolCapacity){
+            return null;
+        }
+        if (allPages.containsKey(pinPageId)) { //if page is in bufferpool
+            System.out.println("tester 1");
+            numPages();
+            int pageIndex = allPages.get(pinPageId);
+            FrameDescriptor curPage = frameTable[pageIndex];
+            curPage.pinCount ++;
+            curPage.dirty = true;
+            return bufferPool[pageIndex];
+        }
+        else{ //if page is not in bufferpool, get from disk
+            numPages();
+            if (numpages < poolCapacity) { //if there is empty frame
+                //update buffer pool
+                numPages();
+                int newIndex = numpages; //index to insert at
+                Page insertPage = null; //create new page object in memory
+                
+                DBFile db = new DBFile(fileName); //open the target database containing the page
+                insertPage = new Page();
+                db.readPage(pinPageId, insertPage); //read page into the new page object
+                bufferPool[newIndex] = insertPage; //insert the new page object into bufferpool
+                numPages();
+                
+                //update FrameDescriptor
+                FrameDescriptor newFrame = new FrameDescriptor();
+                newFrame.pageNum = pinPageId;
+                newFrame.pinCount = 1; //pin page
+                newFrame.fileName = fileName;
+                newFrame.dirty = true;
+                frameTable[newIndex] = newFrame;
+                
+                //update allPages
+                allPages.put(pinPageId, newIndex);
+                
+                return bufferPool[newIndex];
+            }
+            numPages();
+            if (numpages >= poolCapacity) { //if there are no empty frames, use clock
+                //choose a frame for replacement using clock replacement
+                numPages();
+                boolean frameFound = false;
+                clockHand = (clockHand + 1) % (poolCapacity); //advance clockhand
+                FrameDescriptor curFrame = frameTable[clockHand];
+                while (frameFound == false) {
+                    if (curFrame.pinCount != 0) { //if page pinned, advance clockhand
+                        clockHand = (clockHand + 1) % (poolCapacity);
+                        curFrame = frameTable[clockHand];
+                    }
+                    if (curFrame.pinCount == 0 && curFrame.referenceBit == false) {
+                        curFrame.referenceBit = true;
+                        clockHand = (clockHand + 1) % (poolCapacity);
+                        curFrame = frameTable[clockHand];
+                    }
+                    if (curFrame.referenceBit == true) {
+                        frameFound = true;
+                    }
+                    
+                }
+                
+                int curPageId = curFrame.pageNum;
+                //check if the page to be replaced is dirty
+                if (curFrame.dirty == true) {
+                    DBFile dbFile = new DBFile(fileName);
+                    dbFile.writePage(curFrame.pageNum, bufferPool[clockHand]);;
+                }
+                //update bufferpool
+                Page insertPage = new Page(); //create new page object in memory
+                DBFile db = new DBFile(fileName); //open the target database containing the page
+                db.readPage(pinPageId, insertPage); //read page into the new page object
+                bufferPool[clockHand] = insertPage; //insert the new page object into bufferpool
+                numPages();
+                
+                //update frameTable
+                FrameDescriptor newFrame = new FrameDescriptor();
+                newFrame.pageNum = pinPageId;
+                newFrame.pinCount = 1; //pin page
+                newFrame.fileName = fileName;
+                newFrame.dirty = true;
+                frameTable[clockHand] = newFrame; 
+                
+                //update allPages
+                allPages.remove(curPageId);
+                allPages.put(pinPageId, clockHand);
+                
+                return bufferPool[clockHand];
+            }
+        }
+        return null;
     }
 
+    
     /**
      * If the pin count for this page is greater than 0, it is
      * decremented. If the pin count becomes zero, it is appropriately
@@ -132,21 +205,24 @@ public class BufferManager
         throws IOException
     {
         boolean success = false;
-        for(int i = 0; i < frameTable.length; i++){
-            FrameDescriptor descriptor = frameTable[i];
-            if(descriptor != null
-                    && descriptor.pageNum == unpinPageId
-                    && descriptor.fileName.equals(fileName)
-                    && descriptor.pinCount > 0){
-                descriptor.pinCount --;
-                if(dirty){
-                    DBFile dbFile = new DBFile(fileName);
-                    dbFile.writePage(descriptor.pageNum,bufferPool[i]);
-                }
-                success = true;
-            }
+        int pageIndex = allPages.get(unpinPageId);
+        FrameDescriptor curPage = frameTable[pageIndex];
+        
+        if (curPage.pinCount > 0) {
+            curPage.pinCount --;
+            success = true;
         }
-        if(!success){
+        if (curPage.pinCount == 0) {
+            curPage.referenceBit = false;
+        }
+        
+        //write back if the page unpinned is dirty
+        if (curPage.dirty == true) {
+            DBFile dbFile = new DBFile(fileName);
+            dbFile.writePage(curPage.pageNum, bufferPool[pageIndex]);
+        }
+        
+        if (!success) {
             throw new PageNotPinnedException();
         }
     }
@@ -170,22 +246,33 @@ public class BufferManager
     public Pair<Integer,Page> newPage(int numPages, String fileName)
         throws IOException
     {
-        //open db
-        DBFile dbFile  = new DBFile(fileName);
-        // allocate
-        dbFile.allocatePages(numPages);
-
-        Page pinned = pinPage(0,fileName,false);
-
-
-//        for(FrameDescriptor descriptor: frameTable){
-//            if(descriptor!=null)
-//                System.out.println("File name: "+descriptor.fileName+", pageId: "+descriptor.pageNum +", "+"pinCount: "+descriptor.pinCount);
-//        }
-
-        if(pinned !=null){
-            return new Pair<Integer, Page>(0,pinned);
-        }else{
+        DBFile db = new DBFile(fileName); //open the target database containing the page
+        int firstPId = db.allocatePages(numPages);
+        numPages();
+        if (numpages < poolCapacity){ //if there is empty frame
+            //update buffer pool
+            int newIndex = numpages; //index to insert at
+            Page insertPage = new Page(); //create new page object in memory
+            db.readPage(firstPId, insertPage); //read page into the new page object
+            bufferPool[newIndex] = insertPage; //insert the new page object into bufferpool
+            numPages();
+            
+            //update FrameDescriptor
+            FrameDescriptor newFrame = new FrameDescriptor();
+            newFrame.pageNum = firstPId;
+            newFrame.pinCount = 1; //pin page
+            newFrame.fileName = fileName;
+            newFrame.dirty = true;
+            frameTable[newIndex] = newFrame;
+            
+            //update allPages
+            allPages.put(firstPId, newIndex);
+            Pair<Integer, Page> ret = new Pair<Integer, Page>(firstPId, bufferPool[newIndex]);
+            System.out.println(newIndex);
+            return ret;
+        }
+        else {
+            System.out.println("There is not enough space in the bufferpool.");
             return null;
         }
     }
@@ -201,8 +288,27 @@ public class BufferManager
      */
     public void freePage(int pageId, String fileName) throws IOException
     {
+        DBFile temp = new DBFile(fileName);
+        int pageIndex = allPages.get(pageId);
+        FrameDescriptor curPage = frameTable[pageIndex];
+        
+        if (curPage.pinCount > 0)
+            throw new PagePinnedException();
+        temp.deallocatePages(pageId, 1);
     }
 
+    
+    
+    /**
+     * Count the number of pages in the bufferpool
+     */
+    public void numPages() {
+        int counter = 0;
+        for (int i = 0; i < bufferPool.length; i ++)
+            if (bufferPool[i] != null)
+                counter ++;
+        numpages = counter;
+    }
     /**
      * Flushes page from the buffer pool to the underlying database if
      * it is dirty. If page is not dirty, it is not flushed,
@@ -217,6 +323,15 @@ public class BufferManager
      */
     public void flushPage(int pageId, String fileName) throws IOException
     {
+        if (allPages.containsKey(pageId)) {
+            if (frameTable[allPages.get(pageId)].dirty) {
+                DBFile dbFile = new DBFile(fileName);
+                int pageIndex = allPages.get(pageId);
+                FrameDescriptor curPage = frameTable[pageIndex];
+                dbFile.writePage(curPage.pageNum, bufferPool[pageIndex]);
+                frameTable[allPages.get(pageId)].dirty = false;
+            }
+        }
     }
 
     /**
@@ -226,8 +341,14 @@ public class BufferManager
      * database has been erased.
      * @throws IOException passed through from underlying file system.
      */
-    public void flushAllPages() throws IOException
+    public void flushAllPages(String fileName) throws IOException
     {
+        for (int i = 0; i < bufferPool.length; i++) {
+            if (frameTable[i] != null)
+                flushPage(frameTable[i].pageNum, fileName);
+            // else
+            //     break;
+        }
     }
         
     /**
@@ -241,14 +362,10 @@ public class BufferManager
     */
     public int findFrame(int pageId, String fileName)
     {
-        for (int i = 0; i< frameTable.length; i++){
-            FrameDescriptor descriptor = frameTable[i];
-            if(descriptor!=null
-                    && descriptor.pageNum == pageId
-                    && descriptor.fileName.equals(fileName)){
-                return i;
-            }
+        if (allPages.get(pageId) == null) {
+            return -1;
         }
-        return -1;
+        int pageIndex = allPages.get(pageId);
+        return pageIndex;
     }
 }
