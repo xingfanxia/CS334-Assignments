@@ -194,9 +194,17 @@ class Bptree(object):
 			print_list.append(" ") # Depth
 
 		while j < len(node):
-			print_list.append(node[j]) # add everything in the curNode to the print_list
-			j += 2
-
+			if curLevel == self.height:
+				if j%2 == 0:
+					print_list.append(node[j])
+					j+=1
+				else:
+					node[j] = "-> " + node[j]
+					print_list.append(node[j])
+					j+=1
+			else:
+				print_list.append(node[j]) # add everything in the curNode to the print_list
+				j += 2				
 		for c in range(len(print_list)):
 			print print_list[c], 
 		print
