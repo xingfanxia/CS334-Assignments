@@ -50,7 +50,7 @@ class Bptree(object):
 		if node == self.root:
 			self.curLevel = 1
 
-		if self.curLevel != self.height: # if a leaf node
+		if self.curLevel != self.height: # if not a leaf node
 			k = 1 # tracking counter 1
 			while (k < len(node)) and (key > node[k]):
 				k += 2	#find where to put k
@@ -98,7 +98,7 @@ class Bptree(object):
 				return new_record
 
 				
-		# if not a leaf
+		# if a leaf node
 		else:
 			k = 0 # tracking counter 1
 			while (k < len(node)) and (key > node[k]):
@@ -207,159 +207,6 @@ class Bptree(object):
 
 		else: # end
 			return
-
-    '''
-    Method to delete a record from the B+tree
-    @param aKey - the key of the record to delete from the B+tree: 
-    '''
-    def delete(self,aKey):        
-        self.curLevel = 0
-        self.toDelete(None, self.root, aKey)
-    
-    def toDelete(self, parent, aNode, aKey):
-        if parent == None:
-            self.curLevel = 1
-        
-        #If aNode is a leaf node, delete the key-value pair.
-        if self.curLevel == self.levels:
-            i = 0
-            while (i < len(aNode)) and (aKey > aNode[i]):
-                i += 2
-        
-            if (i < len(aNode)) and (aKey != aNode[i]):
-                raise noEntryException("Entry is not in the database.")
-            
-            del aNode[i:i+2]
-            
-            # If the node is less than half full, join with sibnode
-            if len(aNode) < self.keyCapacity%2 + self.keyCapacity:
-                curIndex = parent.index(aNode)
-                test = parent[curIndex - 2]
-                
-                ##If curnode is the most right one, use another sibling
-                if curIndex-2 <0:
-                    test = parent[curIndex+2]
-                    if len(test) <= self.keyCapacity%2 + self.keyCapacity:
-                        K = parent[curIndex+1] #index between cur and test
-                        #copy aNode into beginning of the test node
-                        while len(aNode)!=0:
-                            test.insert(0,aNode.pop(len(aNode)-1))
-                        #del parent[curIndex-1:curIndex+1]
-                        return K
-                    
-                    #if node more than half full, allocate test into end of aNode
-                    totalLen = len(aNode) + len(test)
-                    a = 0
-                    temp = len(aNode)
-                    while a < totalLen//2-temp:
-                        aNode.insert(len(aNode),test.pop(0))
-                        a += 1
-                    
-                    key = curIndex + 1
-                    parent[key] = test[0]
-                    return None
-                
-                else:
-                    #if node half full, join 
-                    if len(test) <= self.keyCapacity%2 + self.keyCapacity:
-                        K = parent[curIndex-1] #index between cur and test
-                        i = 0
-                        #copy aNode into test node
-                        while len(aNode)!=0:
-                            test.insert(len(test),aNode.pop(i))
-                        #del parent[curIndex-1:curIndex+1]
-                        return K
-                    
-                    #if node more than half full, allocate
-                    totalLen = len(aNode) + len(test)
-                    a = 0
-                    temp = len(aNode)
-                    while a < totalLen//2-temp:
-                        aNode.insert(0,test.pop(len(test)-1))
-                        a+=1
-                    key = curIndex - 1
-                    parent[key] = aNode[0]
-                    return None
-            
-            else:
-                return None
-            
-        
-        
-        
-        #If aNode is a non-leaf, determing which subtree to delete from        
-        else:
-            i = self.getNextNode(aNode, aKey)
-            #old Entry is a key to be deleted
-            self.curLevel += 1
-            
-            oldEntry = self.toDelete(aNode, i, aKey)
-            self.curLevel -= 1
-            
-            if oldEntry == None:
-                return None
-            
-            else:
-                if aNode[aNode.index(oldEntry)-1]==[] :
-                    del aNode[aNode.index(oldEntry)-1:aNode.index(oldEntry)+1]
-                else:
-                    del aNode[aNode.index(oldEntry):aNode.index(oldEntry)+2]
-                
-                if (len(aNode) >= self.minP*2-1):   
-                    return None
-                
-                else:
-                    if self.curLevel == 1:
-                        return None
-                    curIndex = parent.index(aNode)
-                    ###if node is the left most, check the sib on the right
-                    if curIndex - 2 <0:
-                        test = parent[curIndex+2]
-                        #if test is just half full, merge two nodes
-                        if len(test) <= self.minP*2-1:
-                            K = parent[curIndex+1] #index between cur and test
-                            test.insert(0,K)
-                            #copy aNode into test node
-                            while len(aNode)!=0:
-                                test.insert(0, aNode.pop(len(aNode)-1))
-                            #del parent[curIndex-1:curIndex+1]
-                            return K
-                    
-                        totalLen = len(aNode) + len(test)
-                        
-                        a = 0
-                        temp = len(aNode)
-                        while a < totalLen//2-temp:
-                            aNode.insert(len(aNode), parent[curIndex+1])
-                            parent[curIndex+1] = test.pop(1)
-                            aNode.insert(len(aNode), test.pop(0))
-                            a += 2
-                        return None
-                    
-                    else:
-                        test = parent[curIndex - 2]
-                        #if node half full, merge
-                        if len(test) <= self.minP*2-1:
-                            K = parent[curIndex-1] #index between cur and test
-                            test.insert(K)
-                            i = 0
-                            #copy aNode into test node
-                            while len(aNode)!=0:
-                                test.insert(aNode.pop(i))
-                            #del parent[curIndex-1:curIndex+1]
-                            return K
-                    
-                        totalLen = len(aNode) + len(test)
-                        a = 0
-                        temp=len(aNode)
-                        while a < totalLen//2-temp:
-                            test.insert(len(test),parent[curIndex-1])
-                            parent[curIndex-1] = aNode.pop(1)
-                            test.insert(len(test), aNode.pop(0))
-                            a += 2
-                            
-                        return None
-                
 	'''
 	Prints out a text version of the tree to the screen. The easiest way I found to do this was to rotate the tree vertically, showing the root on the left hand side of the terminal window, expanding to the right, and indenting further for deeper levels. Doing a recursive depth-first traversal of the tree made this pretty easy.
 	'''
