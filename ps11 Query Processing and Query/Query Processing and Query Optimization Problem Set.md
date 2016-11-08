@@ -12,17 +12,20 @@ t_s  = 5 \times 10^{-3} s
 \\
 t_t= \frac{4 \times 10^3}{40 \times 10^6} = 10^{-4} s
 \\
-mergePass = [log_{m-1}(\frac{br}{M})] = 1
+mergePass = [log_{\frac{M-1}{bb}}(\frac{br}{M})]
 \\
-n_t  = b_r \times (2 \times mergePass +1) = 3 \times 10^7
+n_t  = b_r \times (2 \times mergePass +1) 
 \\
 n_s = 2 \times \frac{b_r}{M} + \frac{b_r}{b_b}\times(2\times mergePass -1)
 $$
-The number of block transfers is
+As the equation showed above, the total amount it takes to sort the relation consist of average disk seek cost, number of disk seeks, cost of block transfer and number of block transfers. 
 
 - $bb = 1$
 
-  Substitute into the equation:
+  - In this case, at the first run, all tuples are read in and wrote out once and there are therefore $\frac{br}{M} = 1000$ sorted runs. And this step requires $2 \times \frac{b_r}{M}$ block seeks because;  $2 b_r$ block transfers because every block is read in and written out.
+  - In the second pass since the buffer block $b_b = 1$ , $(M-1) \div b_b= 9999$ block is available for merges. So in this case, 9999 blocks are available to merge and requires $[log_{9999}1000] = 1$ mergePasses to merge all the runs. And this pass will require $b_r$ block seeks and $b_r$ block reads to read data from disk to memory.
+  - Substitute into the equation above:
+
   $$
   n_s = 2 \times 10^3 +  1\times 10^7 \times  (2\times 1 -1) = 1.0002 \times 10^7 \\
   C = 3 \times 10^7 \times 10^{-4} + 1.0002 \times 10^7 \times 5 \times 10^{-3} = 53010s
@@ -30,17 +33,33 @@ The number of block transfers is
 
 - $bb = 100$
 
-  Substitute into the equation:
-  $$
-  n_s = 2 \times 10^3 +  1\times 10^5 \times  (2\times 1 -1) = 1.02 \times 10^5 \\
-  C = 3 \times 10^7 \times 10^{-4} + 1.02 \times 10^5 \times 5 \times 10^{-3}  = 3510s
-  $$
-  b) 
+  - In this case, at the first run, all tuples are read in and wrote out once and there are therefore $\frac{br}{M} = 1000$ sorted runs. And this step requires $2 \times \frac{b_r}{M}$ block seeks because every block is read one at a time;  $2 b_r$ block transfers because every block is read in and written out.
+  - In the second pass since the buffer block $b_b = 100$ , $(M-1) \div b_b= 99.99$ block is available for merges. So in this case,  only 99 blocks can be taken to merge and requires $[log_{99.99}1000] = 2$ mergePasses to merge all the runs. And this run requires $b_r \div 100 = 10^5$ disk seeks per pass because 100 blocks are read in a pass all together and it requires $3 b_r$ block transfers cause every block is read in, written out and read in.
 
-  Number of mergePass in both cases is:
+  Substitute into the equation above:
   $$
-  mergePass = [log_{m-1}(\frac{br}{M})] = 1
+  n_s = 2 \times 10^3 +  1\times 10^5 \times  (2\times 2 -1) = 3.02 \times 10^5 \\
+  C = 5 \times 10^7 \times 10^{-4} + 3.02 \times 10^5 \times 5 \times 10^{-3}  = 6510s
   $$
+  b) As reasoned above:
+
+  The number of merge passes depends on the number of runs merged together during each pass.
+
+  - $bb= 1$
+
+    In this case, all 1000 runs can be merged into one sorted result in one pass.
+
+  $$
+  mergePass = [log_{\frac{M-1}{bb}}(\frac{br}{M})] = log_{9999}1000 = 1
+  $$
+  - $bb = 100$
+
+    In this case, only 99 runs can be merged into one sorted result in one pass. So two is required. 
+    $$
+    mergePass = [log_{\frac{M-1}{bb}}(\frac{br}{M})] = log_{99.99}1000 = 2
+    $$
+    ​
+
   c)
 
   - $bb =1$
@@ -53,7 +72,7 @@ The number of block transfers is
   - $bb = 100$
     $$
     t_s = 1 \times 10^{-4} \\
-    new_C = 3 \times 10^7 \times 10^{-4} + 1.02 \times 10^5 \times 1 \times 10^{-4} = 3010.2s
+    new_C = 3 \times 10^7 \times 10^{-4} + 3.02 \times 10^5 \times 1 \times 10^{-4} = 3030.2s
     $$
     ​
 
